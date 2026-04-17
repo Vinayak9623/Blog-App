@@ -15,6 +15,7 @@ public class Article {
     private Long id;
     private String title;
     private String shortDesc;
+    @Lob
     private String content;
     private boolean paid;
     @Enumerated(EnumType.STRING)

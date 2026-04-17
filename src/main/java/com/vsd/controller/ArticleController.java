@@ -2,6 +2,7 @@ package com.vsd.controller;
 
 import com.vsd.dto.ArticleDto;
 import com.vsd.service.ArticleService;
+import com.vsd.service.impl.ArticleServiceImpl;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,7 +14,7 @@ public class ArticleController {
     private final ArticleService articleService;
 
     public ArticleController(ArticleService articleService){
-        this.articleService=articleService;
+        this.articleService = articleService;
     }
 
     @PostMapping("/")
@@ -22,7 +23,7 @@ public class ArticleController {
     }
 
     @PutMapping("/{articleId}")
-    public String updateArticle(@PathVariable long articleId,@RequestBody ArticleDto articleDto){
+    public ArticleDto updateArticle(@PathVariable long articleId,@RequestBody ArticleDto articleDto){
         return articleService.update(articleId,articleDto);
     }
     @GetMapping("/get")
@@ -38,5 +39,15 @@ public class ArticleController {
     @DeleteMapping("/{articleId}")
     public String deleteArticle( @PathVariable long articleId) {
         return articleService.deleteArticle(articleId);
+    }
+
+    @GetMapping("/{userId}")
+    public List<ArticleDto> getArticleByUser(@PathVariable Long userId){
+        return articleService.getArticleOfUser(userId);
+    }
+
+    @GetMapping("/{categoryId}")
+    public List<ArticleDto> getArticeByCategory(@PathVariable Long categoryId){
+        return articleService.getArticleOfCategory(categoryId);
     }
 }
