@@ -1,6 +1,9 @@
 package com.vsd.dto;
 
+import com.vsd.entity.Status;
 import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -8,8 +11,13 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class ArticleDto {
-    private long id;
-    private String name;
+    private Long id;
+    private String title;
+    private String shortDesc;
     private String content;
-    private int timeInMinutes;
+    private boolean paid;
+    private Status status;
+    private Double rating;
+    private Double price;
+    private Long userId;
 }

@@ -1,10 +1,13 @@
 package com.vsd.service;
 
-import org.springframework.stereotype.Service;
+import com.vsd.dto.CategoryDto;
 
-@Service
-public class CategoryService {
-    public void create(){
-        System.out.println("service created");
-    }
+import java.util.List;
+
+public interface CategoryService {
+
+ public CategoryDto create(CategoryDto categoryDto);
+ public List<CategoryDto> getCategories();
+ public CategoryDto getCategoryById(Long categoryId);
+ public String deleteCategoryById(Long categoryId);
 }
