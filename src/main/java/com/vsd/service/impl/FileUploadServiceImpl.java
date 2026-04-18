@@ -2,11 +2,9 @@ package com.vsd.service.impl;
 
 import com.vsd.entity.ArticleImage;
 import com.vsd.service.FileUploadService;
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+import io.minio.*;
 import io.minio.errors.*;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +16,7 @@ import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Service
@@ -51,6 +50,19 @@ public class FileUploadServiceImpl implements FileUploadService {
                         .contentType(file.getContentType()).build());
 
         return objectKey;
+    }
+
+    @Override
+    public String getPreSignUrl(String objectKey) throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+        return
+                minioClient.getPresignedObjectUrl(
+                       GetPresignedObjectUrlArgs.builder()
+                               .bucket(bucket)
+                               .object(objectKey)
+                               .method(Method.GET)
+                               .expiry(60, TimeUnit.MINUTES)
+                               .build()
+                );
     }
 
     private static void validate(MultipartFile file){

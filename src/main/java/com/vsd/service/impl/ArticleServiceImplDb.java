@@ -62,12 +62,25 @@ public class ArticleServiceImplDb implements ArticleService {
 
     @Override
     public List<ArticleDto> getArticles() {
-        return articleRepository.findAll()
-                .stream()
-                .map(article->modelMapper
-                        .map(article,ArticleDto
-                                .class)).toList();
 
+        List<Article> articles = articleRepository.findAll();
+
+        for (Article article : articles) {
+            if (article.getArticleImage() != null) {
+                article.getArticleImage().forEach(image -> {
+                    try {
+                        String url = fileUploadService.getPreSignUrl(image.getObjectKey());
+                        image.setUrl(url); // ✅ IMPORTANT
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+        }
+
+        return articles.stream()
+                .map(x -> modelMapper.map(x, ArticleDto.class))
+                .toList();
     }
 
     @Override
