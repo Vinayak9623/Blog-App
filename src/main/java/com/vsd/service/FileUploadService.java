@@ -9,5 +9,12 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 public interface FileUploadService {
-    String uploadArticleImage(MultipartFile file) throws IOException, ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException;
+    String uploadArticleImage(MultipartFile file) throws IOException,
+            ServerException, InsufficientDataException,
+            ErrorResponseException, NoSuchAlgorithmException,
+            InvalidKeyException, InvalidResponseException,
+            XmlParserException, InternalException;
+
+
+    public String getPreSignUrl(String objectKey) throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException;
 }
