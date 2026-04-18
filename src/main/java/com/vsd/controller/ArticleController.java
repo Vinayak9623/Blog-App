@@ -1,10 +1,16 @@
 package com.vsd.controller;
 
 import com.vsd.dto.ArticleDto;
+import com.vsd.dto.ArticleImageDto;
 import com.vsd.service.ArticleService;
 import com.vsd.service.impl.ArticleServiceImpl;
+import io.minio.errors.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 @RestController
@@ -49,5 +55,13 @@ public class ArticleController {
     @GetMapping("/{categoryId}")
     public List<ArticleDto> getArticeByCategory(@PathVariable Long categoryId){
         return articleService.getArticleOfCategory(categoryId);
+    }
+
+    @PostMapping("/images/{articleId}")
+    public List<ArticleImageDto> uploadImages
+            (@RequestParam("articleImages") List<MultipartFile> files,
+                                              @PathVariable Long articleId) throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+        return articleService.uploadImage(files,articleId);
+
     }
 }

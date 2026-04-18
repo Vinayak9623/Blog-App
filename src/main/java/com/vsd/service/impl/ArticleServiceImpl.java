@@ -1,8 +1,10 @@
 package com.vsd.service.impl;
 
 import com.vsd.dto.ArticleDto;
+import com.vsd.dto.ArticleImageDto;
 import com.vsd.service.ArticleService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +58,11 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public List<ArticleDto> getArticleOfCategory(Long category) {
+        return List.of();
+    }
+
+    @Override
+    public List<ArticleImageDto> uploadImage(List<MultipartFile> files, Long articleId) {
         return List.of();
     }
 

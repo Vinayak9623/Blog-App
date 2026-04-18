@@ -1,9 +1,11 @@
 package com.vsd.entity;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "articles")
@@ -30,4 +32,7 @@ public class Article {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
+
+    @OneToMany(mappedBy = "article",fetch = FetchType.EAGER,cascade = CascadeType.ALL,orphanRemoval = true)
+    private List<ArticleImage> articleImage;
 }
