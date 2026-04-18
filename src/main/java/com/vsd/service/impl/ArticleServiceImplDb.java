@@ -1,17 +1,25 @@
 package com.vsd.service.impl;
 
 import com.vsd.dto.ArticleDto;
+import com.vsd.dto.ArticleImageDto;
 import com.vsd.entity.Article;
+import com.vsd.entity.ArticleImage;
 import com.vsd.exception.ResourceNotFoundException;
 import com.vsd.repository.ArticleRepository;
 import com.vsd.repository.CategoryRepository;
 import com.vsd.repository.UserRepository;
 import com.vsd.service.ArticleService;
+import com.vsd.service.FileUploadService;
+import io.minio.errors.*;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,6 +32,7 @@ public class ArticleServiceImplDb implements ArticleService {
     private final ModelMapper modelMapper;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final FileUploadService fileUploadService;
 
     @Override
     public ArticleDto create(ArticleDto articleDto) {
@@ -96,5 +105,29 @@ public class ArticleServiceImplDb implements ArticleService {
         return articleRepository.findByCategory(category).stream().map(x->modelMapper
                 .map(x, ArticleDto.class)).toList();
 
+    }
+
+    @Override
+    public List<ArticleImageDto> uploadImage(List<MultipartFile> files, Long articleId) throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+
+        Article article=articleRepository.findById(articleId).orElseThrow(()->new RuntimeException("Article not found"));
+
+        int order=0;
+        for(MultipartFile file:files){
+            String objectKey = fileUploadService.uploadArticleImage(file);
+            ArticleImage articleImage =new ArticleImage();
+            articleImage.setArticle(article);
+            articleImage.setObjectKey(objectKey);
+            articleImage.setContentType(file.getContentType());
+            articleImage.setThumbnail(order==0);
+            articleImage.setDisplayOrder(order);
+            article.getArticleImage().add(articleImage);
+            order++;
+        }
+        Article SaveArticle = articleRepository.save(article);
+        return SaveArticle.getArticleImage().stream()
+                .map(x->modelMapper.map(
+                        x,ArticleImageDto.class
+                )).toList();
     }
 }

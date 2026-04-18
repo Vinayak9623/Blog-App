@@ -14,3 +14,8 @@ spring:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.MySQLDialect
+  minio:
+    endpoint: http://localhost:9000
+    access-key: admin
+    secret-key: Vinayak@0987654321
+    bucket-name: my-basket

@@ -4,6 +4,7 @@ import com.vsd.entity.Status;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -20,4 +21,5 @@ public class ArticleDto {
     private Double rating;
     private Double price;
     private Long userId;
+    private List<ArticleImageDto> articleImage;
 }
