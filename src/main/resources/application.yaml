@@ -19,3 +19,8 @@ spring:
     access-key: admin
     secret-key: Vinayak@0987654321
     bucket-name: my-basket
+
+logging:
+    level:
+      org.springframework.security: DEBUG
+      org.springframework.web: DEBUG

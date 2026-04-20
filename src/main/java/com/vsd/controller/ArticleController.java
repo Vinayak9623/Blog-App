@@ -5,6 +5,7 @@ import com.vsd.dto.ArticleImageDto;
 import com.vsd.service.ArticleService;
 import com.vsd.service.impl.ArticleServiceImpl;
 import io.minio.errors.*;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,7 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/article")
+@RequestMapping("/api/v1/article")
 public class ArticleController {
 
     private final ArticleService articleService;
@@ -35,6 +36,14 @@ public class ArticleController {
     @GetMapping("/get")
     public List<ArticleDto> getArticles() {
         return articleService.getArticles();
+    }
+
+    @GetMapping("/articlePage")
+    public Page<ArticleDto> getPagenatedArticles(
+            @RequestParam(name = "page",defaultValue = "1") Integer page ,
+            @RequestParam(name = "size", defaultValue = "10") Integer size
+    ){
+        return articleService.getPeginatedArticle(page, size);
     }
 
     @GetMapping("/{articleId}")

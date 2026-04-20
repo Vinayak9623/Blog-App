@@ -14,6 +14,9 @@ import io.minio.errors.*;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -81,6 +84,15 @@ public class ArticleServiceImplDb implements ArticleService {
         return articles.stream()
                 .map(x -> modelMapper.map(x, ArticleDto.class))
                 .toList();
+    }
+
+    @Override
+    public Page<ArticleDto> getPeginatedArticle(int page, int size) {
+        PageRequest request = PageRequest.of(page, size);
+        Page<Article> all = articleRepository.findAll(request);
+        Page<ArticleDto> map = all.map(x -> modelMapper.map(x, ArticleDto.class));
+
+        return map;
     }
 
     @Override
