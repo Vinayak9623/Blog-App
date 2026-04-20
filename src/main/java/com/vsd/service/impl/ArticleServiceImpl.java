@@ -3,6 +3,7 @@ package com.vsd.service.impl;
 import com.vsd.dto.ArticleDto;
 import com.vsd.dto.ArticleImageDto;
 import com.vsd.service.ArticleService;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,11 @@ public class ArticleServiceImpl implements ArticleService {
 
     public List<ArticleDto> getArticles(){
         return list;
+    }
+
+    @Override
+    public Page<ArticleDto> getPeginatedArticle(int page, int size) {
+        return null;
     }
 
     public ArticleDto getSingleArticle(long articleId){
