@@ -46,13 +46,13 @@ public class ArticleController {
         return articleService.getPeginatedArticle(page, size);
     }
 
-    @GetMapping("/{articleId}")
-    public ArticleDto getSingleArticle(@PathVariable long articleId) {
+    @GetMapping("/single/{id}")
+    public ArticleDto getSingleArticle(@PathVariable("id") Long articleId) {
         return articleService.getSingleArticle(articleId);
     }
 
     @DeleteMapping("/{articleId}")
-    public String deleteArticle( @PathVariable long articleId) {
+    public String deleteArticle( @PathVariable Long articleId) {
         return articleService.deleteArticle(articleId);
     }
 
