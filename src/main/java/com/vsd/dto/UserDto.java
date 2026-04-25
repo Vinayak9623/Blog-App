@@ -15,5 +15,7 @@ public class UserDto {
     private String name;
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Role role;
     private boolean isActive=true;
 }

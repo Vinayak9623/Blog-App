@@ -1,12 +1,20 @@
 package com.vsd.service.impl;
 
+import com.vsd.dto.LoginRequest;
+import com.vsd.dto.TokenResponse;
 import com.vsd.dto.UserDto;
 import com.vsd.entity.Role;
 import com.vsd.entity.User;
 import com.vsd.repository.UserRepository;
+import com.vsd.security.JwtService;
 import com.vsd.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +26,8 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
+    private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
 
 
     @Override
@@ -37,9 +47,38 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    @Override
+    public TokenResponse genrateToken(LoginRequest loginRequest) {
+        try {
+            UsernamePasswordAuthenticationToken authenticationToken =
+                    new UsernamePasswordAuthenticationToken
+                            (loginRequest.getEmail(), loginRequest.getPassword());
+            Authentication authenticate = authenticationManager
+                    .authenticate(authenticationToken);
+
+            User user = userRepository
+                    .findByEmail(loginRequest.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            TokenResponse response = TokenResponse.builder()
+                    .accessToken(jwtService.genrateAccessToken(user))
+                    .refreshToken(jwtService.genrateRefreshToken(user))
+                    .user(modelMapper.map(user, UserDto.class))
+                    .build();
+            return response;
+        }
+        catch (AuthenticationException ex){
+
+            ex.printStackTrace();
+            throw new BadCredentialsException("Credentials not valid");
+        }
+    }
+
 
     private void validate(User user){
-        User user1 = userRepository.findByEmail(user.getEmail());
+        User user1 = userRepository
+                .findByEmail(user.getEmail())
+                .orElseThrow(()->new RuntimeException("user not found"));
         if(user1!=null){
             throw new RuntimeException("User already exist");
         }
