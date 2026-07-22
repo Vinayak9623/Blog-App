@@ -18,6 +18,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 
 @Service
 @RequiredArgsConstructor
@@ -76,10 +78,9 @@ public class UserServiceImpl implements UserService {
 
 
     private void validate(User user){
-        User user1 = userRepository
-                .findByEmail(user.getEmail())
-                .orElseThrow(()->new RuntimeException("user not found"));
-        if(user1!=null){
+        Optional<User> email = userRepository
+                .findByEmail(user.getEmail());
+        if(email.isPresent()){
             throw new RuntimeException("User already exist");
         }
     }
