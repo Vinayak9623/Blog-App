@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.vsd.entity.Role.Role_Guest;
+import static com.vsd.entity.Role.ROLE_GUEST;
 
 @Entity
 @Table(name = "user")
@@ -22,7 +22,7 @@ public class User {
     private String password;
     private boolean isActive=true;
     @Enumerated(EnumType.STRING)
-    private Role role=Role_Guest;
+    private Role role=ROLE_GUEST;
     @OneToMany(mappedBy = "user",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Article> articles=new ArrayList<>();
 }

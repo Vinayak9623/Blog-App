@@ -1,5 +1,6 @@
 package com.vsd.entity;
 
 public enum Role {
-    Role_Admin,Role_Guest
+    ROLE_ADMIN,
+    ROLE_GUEST
 }

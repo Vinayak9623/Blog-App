@@ -19,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
+import static com.vsd.entity.Role.ROLE_GUEST;
+
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
     @Mock
@@ -43,7 +45,7 @@ public class UserServiceTest {
         userDto.setName("vinayak");
         userDto.setEmail("vinayak@gmail.com");
         userDto.setPassword("12345");
-        userDto.setRole(Role.Role_Guest);
+        userDto.setRole(ROLE_GUEST);
         User savedUser=new User();
         savedUser.setId(1L);
         savedUser.setName("vinayak");

@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+import static com.vsd.entity.Role.ROLE_ADMIN;
+import static com.vsd.entity.Role.ROLE_GUEST;
+
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +39,7 @@ public class UserServiceImpl implements UserService {
     public UserDto registerUser(UserDto userDto) {
         var user=modelMapper.map(userDto,User.class);
         validate(user);
-        user.setRole(Role.Role_Guest);
+        user.setRole(ROLE_GUEST);
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         var user1=userRepository.save(user);
         return modelMapper.map(user1, UserDto.class);
@@ -45,7 +48,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void makeAdmin(Long userId) {
         var user=userRepository.findById(userId).orElseThrow(()->new RuntimeException("User not found"));
-        user.setRole(Role.Role_Admin);
+        user.setRole(ROLE_ADMIN);
         userRepository.save(user);
     }
 

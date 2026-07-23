@@ -27,7 +27,7 @@ public class UserController {
 
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/makeAdmin/{userId}")
+    @PostMapping("/admin/{userId}")
     public void makeAdmin(@PathVariable("userId") Long userId){
          userService.makeAdmin(userId);
     }
