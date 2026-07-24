@@ -70,4 +70,26 @@ public class UserServiceTest {
         Mockito.verify(modelMapper).map(savedUser,UserDto.class);
     }
 
+
+    @Test
+    void shouldThrowExceptionWhenEmailAlreadyExist(){
+        UserDto userDto = new UserDto();
+        userDto.setEmail("vinayak@gmail.com");
+        User user=new User();
+        user.setEmail("vinayak@gmail.com");
+        User existingUser=new User();
+
+        Mockito.when(modelMapper.map(userDto,User.class)).thenReturn(user);
+        Mockito.when(userRepository.findByEmail(userDto.getEmail()))
+                .thenReturn(Optional.of(existingUser));
+
+        RuntimeException exception = Assertions.assertThrows(RuntimeException.class, () -> userService.registerUser(userDto));
+        Assertions.assertEquals("User already exist",exception.getMessage());
+        Mockito.verify(userRepository).findByEmail(user.getEmail());
+        Mockito.verify(userRepository,Mockito.never()).save(Mockito.any(User.class));
+        Mockito.verify(modelMapper).map(userDto,User.class);
+        Mockito.verify(passwordEncoder,Mockito.never()).encode("anyString");
+        Mockito.verify(modelMapper,Mockito.never()).map(Mockito.any(User.class),Mockito.eq(UserDto.class));
+    }
+
 }
