@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
+import static com.vsd.entity.Role.ROLE_ADMIN;
 import static com.vsd.entity.Role.ROLE_GUEST;
 
 @ExtendWith(MockitoExtension.class)
@@ -90,6 +91,22 @@ public class UserServiceTest {
         Mockito.verify(modelMapper).map(userDto,User.class);
         Mockito.verify(passwordEncoder,Mockito.never()).encode("anyString");
         Mockito.verify(modelMapper,Mockito.never()).map(Mockito.any(User.class),Mockito.eq(UserDto.class));
+    }
+
+    @Test
+    void shouldMakeUserAdminSuccessfully(){
+        Long userId=1L;
+        User user=new User();
+        user.setId(userId);
+        user.setRole(Role.ROLE_GUEST);
+        Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        Mockito.when(userRepository.save(user)).thenReturn(user);
+        userService.makeAdmin(userId);
+
+        Assertions.assertEquals(ROLE_ADMIN,user.getRole());
+        Mockito.verify(userRepository).save(user);
+        Mockito.verify(userRepository).findById(userId);
+
     }
 
 }
