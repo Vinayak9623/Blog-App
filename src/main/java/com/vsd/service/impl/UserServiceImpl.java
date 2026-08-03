@@ -3,6 +3,7 @@ package com.vsd.service.impl;
 import com.vsd.dto.LoginRequest;
 import com.vsd.dto.TokenResponse;
 import com.vsd.dto.UserDto;
+import com.vsd.dto.UserResponse;
 import com.vsd.entity.Role;
 import com.vsd.entity.User;
 import com.vsd.repository.UserRepository;
@@ -18,7 +19,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static com.vsd.entity.Role.ROLE_ADMIN;
 import static com.vsd.entity.Role.ROLE_GUEST;
@@ -77,6 +80,12 @@ public class UserServiceImpl implements UserService {
             ex.printStackTrace();
             throw new BadCredentialsException("Credentials not valid");
         }
+    }
+
+    @Override
+    public List<UserResponse> getUsers() {
+        return userRepository.findAll().stream()
+                .map(x -> modelMapper.map(x, UserResponse.class)).toList();
     }
 
 
