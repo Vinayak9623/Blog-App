@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3310/blog_app
+
+  minio:
+    endpoint: http://localhost:9000
+
+
+#    -Dspring.profiles.active=dev  vm mdhe add 

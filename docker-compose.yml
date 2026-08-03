@@ -35,6 +35,8 @@ services:
       - minio
     ports:
       - "8011:8010"
+    environment:
+      - SPRING_PROFILES_ACTIVE= docker
 
 volumes:
   mysql-data:

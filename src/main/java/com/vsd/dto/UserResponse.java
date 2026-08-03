@@ -1,14 +1,19 @@
 package com.vsd.dto;
 import com.vsd.entity.Role;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public record UserResponse(
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserResponse {
 
-        Long id,
-        String email,
-        String name,
-        Role role,
-        boolean isActive
-
-) {
-
+    private Long id;
+    private String email;
+    private String name;
+    private Role role;
+    private boolean isActive;
 }
