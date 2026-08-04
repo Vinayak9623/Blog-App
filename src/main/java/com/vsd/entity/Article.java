@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "articles")
@@ -35,4 +36,16 @@ public class Article {
 
     @OneToMany(mappedBy = "article",fetch = FetchType.EAGER,cascade = CascadeType.ALL,orphanRemoval = true)
     private List<ArticleImage> articleImage;
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Article article = (Article) o;
+        return paid == article.paid && Objects.equals(id, article.id) && Objects.equals(title, article.title) && Objects.equals(shortDesc, article.shortDesc) && Objects.equals(content, article.content) && status == article.status && Objects.equals(publishedAt, article.publishedAt) && Objects.equals(createdAt, article.createdAt) && Objects.equals(rating, article.rating) && Objects.equals(price, article.price) && Objects.equals(category, article.category) && Objects.equals(user, article.user);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, title, shortDesc, content, paid, status, publishedAt, createdAt, rating, price, category, user);
+    }
 }
