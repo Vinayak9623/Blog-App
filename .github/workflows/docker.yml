@@ -47,23 +47,25 @@ jobs:
             ${{ vars.DOCKERHUB_USERNAME }}/blog-app:latest
             ${{ vars.DOCKERHUB_USERNAME }}/blog-app:${{ github.sha }}
 
-#  # ==========================================
-#  # STAGE 2: Deploy to AWS EC2 (CD)
-#  # ==========================================
-#  deploy:
-#    name: Deploy to EC2
-#    needs: build-and-push
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - name: SSH and Deploy to EC2
-#        uses: appleboy/ssh-action@v1.0.3
-#        with:
-#          host: ${{ secrets.EC2_HOST }}
-#          username: ${{ secrets.EC2_USER }}
-#          key: ${{ secrets.EC2_SSH_KEY }}
-#          script: |
-#            cd /home/${{ secrets.EC2_USER }}/blog-app
-#            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/blog-app:latest
-#            docker compose up -d --no-deps --build blog-app
-#            docker image prune -f
+  # ==========================================
+  # STAGE 2: Deploy to AWS EC2 (CD)
+  # ==========================================
+  deploy:
+    name: Deploy to EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.EC2_USER }}/blog-app
+            docker compose pull blog-app
+            docker compose up -d --no-deps blog-app
+            docker image prune -f
+            echo "Deployed successfully"
+
