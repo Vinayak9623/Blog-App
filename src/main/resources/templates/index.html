@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <th:block th:replace="~{fragments/head :: head('Discover Stories & Insights')}"></th:block>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-tagline">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                Publishing Great Ideas Everyday
+            </div>
+            <h1 class="hero-title">Words that shape minds & spark ideas.</h1>
+            <p class="hero-subtitle">
+                Explore in-depth articles, technology insights, creative writing, and knowledge shared by our community of creators.
+            </p>
+
+            <!-- Search & Filter Controls -->
+            <div class="search-filter-box">
+                <div class="search-input-group">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by title, description or keyword..." oninput="handleSearch()">
+                </div>
+                <button class="btn btn-primary" onclick="handleSearch()">Search</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Feed -->
+    <div class="container">
+        <!-- Category Filter Pills -->
+        <div class="category-filter-bar" id="categoryFilterBar">
+            <button class="filter-pill active" data-category-id="all" onclick="filterByCategory('all', this)">All Topics</button>
+            <!-- Categories loaded dynamically -->
+        </div>
+
+        <!-- Featured / Spotlight Story Section -->
+        <div id="featuredStoryContainer" style="display: none;"></div>
+
+        <!-- Articles Grid Header & Sort Filter -->
+        <div class="section-header">
+            <div>
+                <h2 class="section-title" id="feedTitle">Latest Stories</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;" id="feedSubtitle">Showing recent published articles</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <select id="sortFilter" class="form-select" style="padding: 0.45rem 0.85rem; font-size: 0.85rem; border-radius: var(--radius-full);" onchange="applyFiltersAndSort()">
+                    <option value="latest">Sort: Newest First</option>
+                    <option value="rating">Sort: Highest Rated</option>
+                    <option value="free">Filter: Free Only</option>
+                    <option value="paid">Filter: Premium / Paid</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" style="text-align: center; padding: 4rem 0;">
+            <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-weight: 500;">Fetching stories...</p>
+        </div>
+
+        <!-- Articles Grid Container -->
+        <div class="article-grid" id="articleGrid" style="display: none;">
+            <!-- Rendered dynamically by Plain JS -->
+        </div>
+
+        <!-- Empty State Container -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">📝</div>
+            <h3 class="empty-state-title">No stories found</h3>
+            <p class="empty-state-text">We couldn't find any articles matching your search or category filter. Be the first to publish a story!</p>
+            <div style="display: flex; justify-content: center; gap: 0.75rem;">
+                <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+                <a href="/create-article" class="btn btn-primary btn-sm">Write Story</a>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="paginationControls" style="display: none;">
+            <!-- Dynamically rendered pagination -->
+        </div>
+    </div>
+</main>
+
+<!-- Footer Fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts Fragment -->
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+// ==========================================================================
+// Home Feed Controller (Plain Vanilla JavaScript)
+// ==========================================================================
+let allArticles = [];
+let filteredArticles = [];
+let categoriesMap = {};
+let currentCategory = 'all';
+let searchQuery = '';
+let currentPage = 1;
+const pageSize = 9;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadCategories();
+    await loadArticles();
+});
+
+// Load Categories
+async function loadCategories() {
+    try {
+        const categories = await API.get('/api/v1/category/');
+        const container = document.getElementById('categoryFilterBar');
+        if (categories && Array.isArray(categories)) {
+            categories.forEach(cat => {
+                categoriesMap[cat.id] = cat.name;
+                const btn = document.createElement('button');
+                btn.className = 'filter-pill';
+                btn.setAttribute('data-category-id', cat.id);
+                btn.textContent = cat.name;
+                btn.onclick = () => filterByCategory(cat.id, btn);
+                container.appendChild(btn);
+            });
+        }
+    } catch (err) {
+        console.warn('Could not fetch categories:', err);
+    }
+}
+
+// Load Articles
+async function loadArticles() {
+    const loading = document.getElementById('loadingIndicator');
+    const grid = document.getElementById('articleGrid');
+    loading.style.display = 'block';
+    grid.style.display = 'none';
+
+    try {
+        // Fetch all articles
+        const data = await API.get('/api/v1/article/get');
+        allArticles = Array.isArray(data) ? data : [];
+        applyFiltersAndSort();
+    } catch (err) {
+        console.error('Error fetching articles:', err);
+        grid.style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+
+// Filter by Category
+function filterByCategory(categoryId, element) {
+    currentCategory = categoryId;
+    document.querySelectorAll('.filter-pill').forEach(el => el.classList.remove('active'));
+    if (element) element.classList.add('active');
+
+    const feedTitle = document.getElementById('feedTitle');
+    if (categoryId === 'all') {
+        feedTitle.textContent = 'Latest Stories';
+    } else {
+        feedTitle.textContent = `${categoriesMap[categoryId] || 'Category'} Stories`;
+    }
+
+    currentPage = 1;
+    applyFiltersAndSort();
+}
+
+// Search Filter
+function handleSearch() {
+    searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+    currentPage = 1;
+    applyFiltersAndSort();
+}
+
+// Reset Filters
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    searchQuery = '';
+    currentCategory = 'all';
+    document.getElementById('sortFilter').value = 'latest';
+    document.querySelectorAll('.filter-pill').forEach((el, idx) => {
+        el.classList.toggle('active', idx === 0);
+    });
+    document.getElementById('feedTitle').textContent = 'Latest Stories';
+    currentPage = 1;
+    applyFiltersAndSort();
+}
+
+// Apply Filters, Search & Sort
+function applyFiltersAndSort() {
+    const sortVal = document.getElementById('sortFilter').value;
+
+    filteredArticles = allArticles.filter(art => {
+        // Status filter: show PUBLISHED or items without status
+        if (art.status && art.status !== 'PUBLISHED') return false;
+
+        // Category filter
+        if (currentCategory !== 'all') {
+            if (art.category && art.category.id != currentCategory && art.categoryId != currentCategory) {
+                return false;
+            }
+        }
+
+        // Search query filter
+        if (searchQuery) {
+            const titleMatch = (art.title || '').toLowerCase().includes(searchQuery);
+            const descMatch = (art.shortDesc || '').toLowerCase().includes(searchQuery);
+            const contentMatch = (art.content || '').toLowerCase().includes(searchQuery);
+            if (!titleMatch && !descMatch && !contentMatch) return false;
+        }
+
+        // Free/Paid filter
+        if (sortVal === 'free' && art.paid) return false;
+        if (sortVal === 'paid' && !art.paid) return false;
+
+        return true;
+    });
+
+    // Sorting
+    if (sortVal === 'rating') {
+        filteredArticles.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortVal === 'latest') {
+        filteredArticles.sort((a, b) => (b.id || 0) - (a.id || 0));
+    }
+
+    renderFeaturedStory();
+    renderArticlesGrid();
+    renderPagination();
+}
+
+// Render Featured Story (First story if on page 1 and no search query)
+function renderFeaturedStory() {
+    const container = document.getElementById('featuredStoryContainer');
+    if (!container) return;
+
+    if (currentPage === 1 && !searchQuery && currentCategory === 'all' && filteredArticles.length > 0) {
+        const featured = filteredArticles[0];
+        const categoryName = (featured.category && featured.category.name) || categoriesMap[featured.categoryId] || 'Article';
+        const coverImg = (featured.articleImage && featured.articleImage.length > 0 && featured.articleImage[0].url)
+            ? `<img src="${featured.articleImage[0].url}" alt="${UI.escapeHtml(featured.title)}">`
+            : UI.getDefaultCover(categoryName, featured.title);
+
+        container.innerHTML = `
+            <div class="featured-card">
+                <div class="featured-media">
+                    ${coverImg}
+                </div>
+                <div class="featured-content">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span class="badge badge-primary">${UI.escapeHtml(categoryName)}</span>
+                        ${featured.paid ? `<span class="badge badge-paid">★ Premium $${featured.price ? featured.price.toFixed(2) : '0.00'}</span>` : `<span class="badge badge-free">Free Access</span>`}
+                    </div>
+                    <h2 class="featured-title">
+                        <a href="/article/${featured.id}">${UI.escapeHtml(featured.title || 'Untitled Story')}</a>
+                    </h2>
+                    <p class="featured-excerpt">${UI.escapeHtml(featured.shortDesc || (featured.content ? featured.content.substring(0, 160) + '...' : ''))}</p>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div class="avatar-circle" style="width: 38px; height: 38px;">✍</div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 0.9rem;">InkFlow Creator</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">${UI.calculateReadTime(featured.content)}</div>
+                            </div>
+                        </div>
+                        <a href="/article/${featured.id}" class="btn btn-primary btn-sm">Read Story &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+// Render Articles Grid
+function renderArticlesGrid() {
+    const grid = document.getElementById('articleGrid');
+    const emptyState = document.getElementById('emptyState');
+
+    // If featured story is rendered on page 1, skip first story from grid
+    let displayList = [...filteredArticles];
+    if (currentPage === 1 && !searchQuery && currentCategory === 'all' && displayList.length > 0) {
+        displayList = displayList.slice(1);
+    }
+
+    // Pagination slice
+    const startIndex = (currentPage - 1) * pageSize;
+    const paginatedList = displayList.slice(startIndex, startIndex + pageSize);
+
+    if (paginatedList.length === 0 && displayList.length === 0 && (!filteredArticles.length || (currentPage === 1 && filteredArticles.length <= 1 && currentCategory !== 'all'))) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    emptyState.style.display = 'none';
+    grid.style.display = 'grid';
+
+    grid.innerHTML = paginatedList.map(art => {
+        const categoryName = (art.category && art.category.name) || categoriesMap[art.categoryId] || 'Story';
+        const coverImg = (art.articleImage && art.articleImage.length > 0 && art.articleImage[0].url)
+            ? `<img src="${art.articleImage[0].url}" alt="${UI.escapeHtml(art.title)}" onerror="this.parentElement.innerHTML = UI.getDefaultCover('${categoryName}', '${UI.escapeHtml(art.title)}');">`
+            : UI.getDefaultCover(categoryName, art.title);
+
+        const priceBadge = art.paid
+            ? `<span class="badge badge-paid card-price-tag">$${art.price ? art.price.toFixed(2) : '0.00'}</span>`
+            : `<span class="badge badge-free card-price-tag">FREE</span>`;
+
+        return `
+            <article class="article-card">
+                <div class="card-media">
+                    <div class="card-badges">
+                        <span class="badge badge-primary">${UI.escapeHtml(categoryName)}</span>
+                    </div>
+                    ${priceBadge}
+                    ${coverImg}
+                </div>
+                <div class="card-body">
+                    <div class="card-meta">
+                        <span>${UI.calculateReadTime(art.content)}</span>
+                        <span>•</span>
+                        <span>${UI.renderRatingStars(art.rating)}</span>
+                    </div>
+                    <h3 class="card-title">
+                        <a href="/article/${art.id}">${UI.escapeHtml(art.title || 'Untitled Article')}</a>
+                    </h3>
+                    <p class="card-excerpt">
+                        ${UI.escapeHtml(art.shortDesc || (art.content ? art.content.substring(0, 120) + '...' : 'No preview available.'))}
+                    </p>
+                    <div class="card-footer">
+                        <div class="card-author">
+                            <div class="avatar-circle" style="width: 26px; height: 26px; font-size: 0.75rem;">✍</div>
+                            <span>Author #${art.userId || '1'}</span>
+                        </div>
+                        <a href="/article/${art.id}" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.65rem;">Read &rarr;</a>
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
+}
+
+// Render Pagination
+function renderPagination() {
+    const container = document.getElementById('paginationControls');
+    let totalItems = filteredArticles.length;
+    if (currentPage === 1 && !searchQuery && currentCategory === 'all' && totalItems > 0) {
+        totalItems -= 1;
+    }
+
+    const totalPages = Math.ceil(totalItems / pageSize);
+    if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'flex';
+    let html = `
+        <button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>&larr; Prev</button>
+    `;
+
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+    }
+
+    html += `
+        <button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next &rarr;</button>
+    `;
+
+    container.innerHTML = html;
+}
+
+function changePage(page) {
+    currentPage = page;
+    renderArticlesGrid();
+    renderPagination();
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <th:block th:replace="~{fragments/head :: head('Explore Categories & Topics')}"></th:block>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main>
+    <div class="container" style="margin-top: 3rem;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span class="badge badge-primary" style="margin-bottom: 0.5rem;">Knowledge Vault</span>
+                <h1 style="font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em;">Explore Topics</h1>
+                <p style="color: var(--text-muted); font-size: 1.05rem;">Find the topics that matter most to you, from cutting-edge tech to deep philosophy.</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary btn-sm" onclick="openNewCategoryModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add Category
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div style="max-width: 450px; margin-bottom: 2rem;">
+            <div class="search-input-group" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="categorySearch" class="search-input" placeholder="Search categories..." oninput="filterCategoryCards()">
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="catLoading" style="text-align: center; padding: 4rem 0;">
+            <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-weight: 500;">Loading categories...</p>
+        </div>
+
+        <!-- Categories Grid -->
+        <div class="category-card-grid" id="categoryGrid" style="display: none;"></div>
+
+        <!-- Empty State -->
+        <div id="emptyCategories" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">🏷️</div>
+            <h3 class="empty-state-title">No categories found</h3>
+            <p class="empty-state-text">Create your first category to help organize articles across the platform.</p>
+            <button class="btn btn-primary btn-sm" onclick="openNewCategoryModal()">Create Category</button>
+        </div>
+    </div>
+</main>
+
+<!-- Add Category Modal -->
+<div id="categoryModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 class="modal-title">Create New Category</h3>
+            <button class="modal-close-btn" onclick="closeNewCategoryModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label" for="categoryNameInput">Category Name</label>
+                <input type="text" id="categoryNameInput" class="form-input" placeholder="e.g. Artificial Intelligence, Cloud, Lifestyle" required>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeNewCategoryModal()">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="submitCreateCategory()">Create Category</button>
+        </div>
+    </div>
+</div>
+
+<!-- Footer Fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts Fragment -->
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+// ==========================================================================
+// Categories Page Controller (Plain Vanilla JavaScript)
+// ==========================================================================
+let allCategories = [];
+let categoryCounts = {};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await fetchCategoriesAndCounts();
+});
+
+async function fetchCategoriesAndCounts() {
+    const loading = document.getElementById('catLoading');
+    const grid = document.getElementById('categoryGrid');
+
+    try {
+        // Fetch categories & articles concurrently
+        const [cats, articles] = await Promise.all([
+            API.get('/api/v1/category/'),
+            API.get('/api/v1/article/get').catch(() => [])
+        ]);
+
+        allCategories = Array.isArray(cats) ? cats : [];
+        
+        // Count articles per category
+        categoryCounts = {};
+        if (Array.isArray(articles)) {
+            articles.forEach(art => {
+                const catId = (art.category && art.category.id) || art.categoryId;
+                if (catId) {
+                    categoryCounts[catId] = (categoryCounts[catId] || 0) + 1;
+                }
+            });
+        }
+
+        renderCategories(allCategories);
+    } catch (err) {
+        console.error('Error fetching categories:', err);
+        document.getElementById('emptyCategories').style.display = 'block';
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+
+function renderCategories(list) {
+    const grid = document.getElementById('categoryGrid');
+    const emptyState = document.getElementById('emptyCategories');
+
+    if (!list || list.length === 0) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    emptyState.style.display = 'none';
+    grid.style.display = 'grid';
+
+    const isAdmin = Auth.isAdmin();
+
+    grid.innerHTML = list.map(cat => {
+        const count = categoryCounts[cat.id] || 0;
+        return `
+            <div class="category-card">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                        <span class="badge badge-primary">Topic</span>
+                        ${isAdmin ? `
+                            <button onclick="handleDeleteCategory(${cat.id}, '${UI.escapeHtml(cat.name)}')" class="btn btn-danger-outline btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;" title="Delete Category">
+                                &times;
+                            </button>
+                        ` : ''}
+                    </div>
+                    <h3 class="category-card-name">${UI.escapeHtml(cat.name)}</h3>
+                    <p class="category-card-count">${count} ${count === 1 ? 'article published' : 'articles published'}</p>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                    <a href="/?category=${cat.id}" class="btn btn-outline btn-sm" style="width: 100%;">
+                        View Stories &rarr;
+                    </a>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function filterCategoryCards() {
+    const q = document.getElementById('categorySearch').value.trim().toLowerCase();
+    const filtered = allCategories.filter(c => (c.name || '').toLowerCase().includes(q));
+    renderCategories(filtered);
+}
+
+function openNewCategoryModal() {
+    if (!Auth.requireAuth('/categories')) return;
+    document.getElementById('categoryModal').classList.add('show');
+}
+
+function closeNewCategoryModal() {
+    document.getElementById('categoryModal').classList.remove('show');
+}
+
+async function submitCreateCategory() {
+    const nameInput = document.getElementById('categoryNameInput');
+    const name = nameInput.value.trim();
+    if (!name) {
+        UI.showToast('Please enter category name', 'warning');
+        return;
+    }
+
+    try {
+        const newCat = await API.post('/api/v1/category/', { name });
+        UI.showToast(`Category "${newCat.name}" created!`, 'success');
+        closeNewCategoryModal();
+        nameInput.value = '';
+        await fetchCategoriesAndCounts();
+    } catch (err) {
+        UI.showToast('Failed to create category: ' + err.message, 'error');
+    }
+}
+
+function handleDeleteCategory(id, name) {
+    UI.confirm('Delete Category', `Are you sure you want to delete category "${name}"?`, async () => {
+        try {
+            await API.delete(`/api/v1/category/${id}`);
+            UI.showToast('Category deleted successfully.', 'success');
+            await fetchCategoriesAndCounts();
+        } catch (err) {
+            UI.showToast('Failed to delete category: ' + err.message, 'error');
+        }
+    });
+}
+</script>
+
+</body>
+</html>

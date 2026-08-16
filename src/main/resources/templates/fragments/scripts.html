@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+</head>
+<body>
+<th:block th:fragment="scripts">
+    <!-- Main Vanilla JavaScript Application Engine -->
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        function toggleMobileNav() {
+            const navLinks = document.querySelector('.nav-links');
+            if (navLinks) {
+                if (navLinks.style.display === 'flex') {
+                    navLinks.style.display = 'none';
+                } else {
+                    navLinks.style.display = 'flex';
+                    navLinks.style.flexDirection = 'column';
+                    navLinks.style.position = 'absolute';
+                    navLinks.style.top = '72px';
+                    navLinks.style.left = '0';
+                    navLinks.style.width = '100%';
+                    navLinks.style.background = 'var(--bg-card)';
+                    navLinks.style.padding = '1.5rem';
+                    navLinks.style.borderBottom = '1px solid var(--border-color)';
+                    navLinks.style.boxShadow = 'var(--shadow-lg)';
+                }
+            }
+        }
+    </script>
+</th:block>
+</body>
+</html>

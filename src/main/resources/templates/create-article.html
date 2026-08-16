@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <th:block th:replace="~{fragments/head :: head('Write a New Story')}"></th:block>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main>
+    <div class="container container-sm" style="margin-top: 2rem;">
+        <div style="margin-bottom: 2rem;">
+            <a href="/" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 1rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Back to Feed
+            </a>
+            <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;">Write a New Story</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Share your knowledge, ideas, and perspectives with our reader community.</p>
+        </div>
+
+        <form id="createArticleForm" class="form-card" onsubmit="handleCreateArticle(event)">
+            <!-- Title -->
+            <div class="form-group">
+                <label class="form-label" for="articleTitle">Story Title <span style="color: var(--danger);">*</span></label>
+                <input type="text" id="articleTitle" class="form-input" placeholder="e.g. Master Modern Spring Boot Architecture in 2026" required style="font-size: 1.15rem; font-weight: 600;">
+            </div>
+
+            <!-- Category & Status Row -->
+            <div class="form-row form-group">
+                <div>
+                    <label class="form-label" for="articleCategory">Topic / Category <span style="color: var(--danger);">*</span></label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="articleCategory" class="form-select" required>
+                            <option value="">Select a category</option>
+                            <!-- Dynamically loaded -->
+                        </select>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="openNewCategoryModal()" title="Add New Category">+</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" for="articleStatus">Publication Status</label>
+                    <select id="articleStatus" class="form-select">
+                        <option value="PUBLISHED">Published (Live to all)</option>
+                        <option value="DRAFT">Draft (Saved private)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Short Description -->
+            <div class="form-group">
+                <label class="form-label" for="articleShortDesc">Short Summary / Subtitle</label>
+                <input type="text" id="articleShortDesc" class="form-input" placeholder="A brief one or two sentence teaser for feed cards...">
+                <div class="form-hint">Displayed in feed cards and search results.</div>
+            </div>
+
+            <!-- Pricing & Paid Toggle Row -->
+            <div class="form-row form-group" style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <div>
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="articlePaid" onchange="togglePaidSection()" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>Mark as Premium Content</span>
+                    </label>
+                    <div class="form-hint">Readers must purchase access to read full story.</div>
+                </div>
+                <div id="priceInputWrapper" style="display: none;">
+                    <label class="form-label" for="articlePrice">Price ($ USD)</label>
+                    <input type="number" id="articlePrice" class="form-input" min="0.00" step="0.50" value="4.99" placeholder="4.99">
+                </div>
+            </div>
+
+            <!-- Initial Rating Slider -->
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label class="form-label" for="articleRating" style="margin-bottom: 0;">Initial Rating</label>
+                    <span id="ratingDisplay" style="font-weight: 700; color: var(--warning);">★ 5.0</span>
+                </div>
+                <input type="range" id="articleRating" min="1" max="5" step="0.1" value="5.0" style="width: 100%; accent-color: var(--warning);" oninput="document.getElementById('ratingDisplay').textContent = '★ ' + parseFloat(this.value).toFixed(1)">
+            </div>
+
+            <!-- Content Area with Markdown Toolbar -->
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label class="form-label" for="articleContent" style="margin-bottom: 0;">Story Content <span style="color: var(--danger);">*</span></label>
+                    <div style="display: flex; gap: 0.25rem;">
+                        <button type="button" class="btn btn-outline btn-sm" id="editTabBtn" onclick="switchEditorTab('edit')" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">Editor</button>
+                        <button type="button" class="btn btn-outline btn-sm" id="previewTabBtn" onclick="switchEditorTab('preview')" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">Preview</button>
+                    </div>
+                </div>
+
+                <div id="editorPanel">
+                    <div class="editor-toolbar">
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('**', '**')"><b>B</b></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('*', '*')"><i>I</i></button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('## ', '')">H2</button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('### ', '')">H3</button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('> ', '')">Quote</button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('```\n', '\n```')">Code</button>
+                        <button type="button" class="toolbar-btn" onclick="insertMarkdown('- ', '')">List</button>
+                    </div>
+                    <textarea id="articleContent" class="form-textarea editor-textarea" placeholder="Write your story here... Markdown syntax is supported." required></textarea>
+                </div>
+
+                <div id="previewPanel" class="article-content" style="display: none; min-height: 280px; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                    <!-- Dynamic preview rendered here -->
+                </div>
+            </div>
+
+            <!-- Image Upload Dropzone -->
+            <div class="form-group">
+                <label class="form-label">Upload Story Images (MinIO Storage)</label>
+                <div class="dropzone" id="dropzoneBox" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                    <input type="file" id="fileInput" multiple accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                    <div class="dropzone-icon">📷</div>
+                    <div class="dropzone-title">Click to upload or drag & drop story images</div>
+                    <div class="dropzone-sub">Supports PNG, JPG, WebP, GIF (First image will be the cover)</div>
+                </div>
+                <div class="image-preview-grid" id="previewGrid"></div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-lg">
+                    Publish Story &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<!-- Add Category Modal -->
+<div id="categoryModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 class="modal-title">Create New Category</h3>
+            <button class="modal-close-btn" onclick="closeNewCategoryModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label" for="newCategoryName">Category Name</label>
+                <input type="text" id="newCategoryName" class="form-input" placeholder="e.g. Artificial Intelligence, Cloud, Lifestyle">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeNewCategoryModal()">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveNewCategory()">Save Category</button>
+        </div>
+    </div>
+</div>
+
+<!-- Footer Fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts Fragment -->
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<script>
+// ==========================================================================
+// Create Article Controller (Plain Vanilla JavaScript)
+// ==========================================================================
+let selectedFiles = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!Auth.requireAuth('/create-article')) return;
+    await loadCategoryDropdown();
+});
+
+async function loadCategoryDropdown() {
+    try {
+        const categories = await API.get('/api/v1/category/');
+        const select = document.getElementById('articleCategory');
+        select.innerHTML = '<option value="">Select a category</option>';
+        if (categories && Array.isArray(categories)) {
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        }
+    } catch (err) {
+        console.warn('Could not load categories:', err);
+    }
+}
+
+function togglePaidSection() {
+    const isPaid = document.getElementById('articlePaid').checked;
+    document.getElementById('priceInputWrapper').style.display = isPaid ? 'block' : 'none';
+}
+
+function switchEditorTab(tab) {
+    const editor = document.getElementById('editorPanel');
+    const preview = document.getElementById('previewPanel');
+    const editBtn = document.getElementById('editTabBtn');
+    const prevBtn = document.getElementById('previewTabBtn');
+
+    if (tab === 'preview') {
+        editor.style.display = 'none';
+        preview.style.display = 'block';
+        editBtn.className = 'btn btn-outline btn-sm';
+        prevBtn.className = 'btn btn-primary btn-sm';
+
+        const raw = document.getElementById('articleContent').value;
+        preview.innerHTML = formatPreview(raw);
+    } else {
+        editor.style.display = 'block';
+        preview.style.display = 'none';
+        editBtn.className = 'btn btn-primary btn-sm';
+        prevBtn.className = 'btn btn-outline btn-sm';
+    }
+}
+
+function formatPreview(raw) {
+    if (!raw) return '<p style="color:var(--text-muted);">No content to preview.</p>';
+    let formatted = UI.escapeHtml(raw);
+    return formatted.split(/\n\n+/).map(p => {
+        let t = p.trim();
+        if (t.startsWith('# ')) return `<h2>${t.substring(2)}</h2>`;
+        if (t.startsWith('## ')) return `<h3>${t.substring(3)}</h3>`;
+        if (t.startsWith('&gt; ')) return `<blockquote>${t.substring(5)}</blockquote>`;
+        return `<p>${t.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+}
+
+function insertMarkdown(start, end) {
+    const textarea = document.getElementById('articleContent');
+    const startPos = textarea.selectionStart;
+    const endPos = textarea.selectionEnd;
+    const selected = textarea.value.substring(startPos, endPos);
+    const replacement = start + (selected || 'text') + end;
+    
+    textarea.value = textarea.value.substring(0, startPos) + replacement + textarea.value.substring(endPos);
+    textarea.focus();
+    textarea.selectionStart = startPos + start.length;
+    textarea.selectionEnd = startPos + start.length + (selected || 'text').length;
+}
+
+// Drag & Drop Image Handling
+function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropzoneBox').classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    document.getElementById('dropzoneBox').classList.remove('dragover');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropzoneBox').classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        addFiles(Array.from(e.dataTransfer.files));
+    }
+}
+
+function handleFileSelect(e) {
+    if (e.target.files && e.target.files.length > 0) {
+        addFiles(Array.from(e.target.files));
+    }
+}
+
+function addFiles(files) {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    selectedFiles = selectedFiles.concat(imageFiles);
+    renderPreviewGrid();
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderPreviewGrid();
+}
+
+function renderPreviewGrid() {
+    const grid = document.getElementById('previewGrid');
+    grid.innerHTML = selectedFiles.map((file, idx) => {
+        const url = URL.createObjectURL(file);
+        return `
+            <div class="preview-thumb-card">
+                <img src="${url}" alt="Preview">
+                <button type="button" class="remove-thumb-btn" onclick="removeFile(${idx})">&times;</button>
+                ${idx === 0 ? '<span style="position:absolute; bottom:4px; left:4px; font-size:0.65rem; background:var(--primary); color:#fff; padding:1px 4px; border-radius:3px;">Cover</span>' : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+// Handle Form Submission
+async function handleCreateArticle(e) {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Publishing Story...';
+
+    try {
+        const user = Auth.getUser() || {};
+        const title = document.getElementById('articleTitle').value.trim();
+        const shortDesc = document.getElementById('articleShortDesc').value.trim();
+        const content = document.getElementById('articleContent').value.trim();
+        const categoryId = document.getElementById('articleCategory').value;
+        const status = document.getElementById('articleStatus').value;
+        const paid = document.getElementById('articlePaid').checked;
+        const price = paid ? parseFloat(document.getElementById('articlePrice').value || 0) : 0.0;
+        const rating = parseFloat(document.getElementById('articleRating').value || 5.0);
+
+        const payload = {
+            title,
+            shortDesc,
+            content,
+            paid,
+            price,
+            rating,
+            status,
+            userId: user.id || null
+        };
+
+        // 1. Create Article via REST API
+        const createdArticle = await API.post('/api/v1/article/', payload);
+
+        if (!createdArticle || !createdArticle.id) {
+            throw new Error('Failed to create article record.');
+        }
+
+        // 2. Upload images if selected
+        if (selectedFiles.length > 0) {
+            submitBtn.innerHTML = 'Uploading Media...';
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('articleImages', file);
+            });
+
+            try {
+                await API.upload(`/api/v1/article/images/${createdArticle.id}`, formData);
+            } catch (imgErr) {
+                console.warn('Image upload had an issue (MinIO service might be offline):', imgErr);
+                UI.showToast('Article published, but images could not be uploaded to storage.', 'warning');
+            }
+        }
+
+        UI.showToast('Story published successfully!', 'success');
+        setTimeout(() => {
+            window.location.href = `/article/${createdArticle.id}`;
+        }, 1200);
+
+    } catch (err) {
+        console.error('Create article error:', err);
+        UI.showToast('Failed to publish story: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+// Category Modal helpers
+function openNewCategoryModal() {
+    document.getElementById('categoryModal').classList.add('show');
+}
+
+function closeNewCategoryModal() {
+    document.getElementById('categoryModal').classList.remove('show');
+}
+
+async function saveNewCategory() {
+    const input = document.getElementById('newCategoryName');
+    const name = input.value.trim();
+    if (!name) {
+        UI.showToast('Please enter category name', 'warning');
+        return;
+    }
+
+    try {
+        const cat = await API.post('/api/v1/category/', { name });
+        UI.showToast(`Category "${cat.name}" created!`, 'success');
+        closeNewCategoryModal();
+        input.value = '';
+        await loadCategoryDropdown();
+        document.getElementById('articleCategory').value = cat.id;
+    } catch (err) {
+        UI.showToast('Could not save category: ' + err.message, 'error');
+    }
+}
+</script>
+
+</body>
+</html>

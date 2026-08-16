@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer th:fragment="footer" class="site-footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <a href="/" class="brand-logo">
+                    <div class="brand-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                        </svg>
+                    </div>
+                    <div class="brand-text">Ink<span>Flow</span></div>
+                </a>
+                <p>
+                    A modern space for thoughtful writers, tech enthusiasts, and curious minds. Discover stories, read deep-dives, and publish your perspective.
+                </p>
+            </div>
+
+            <div>
+                <h4 class="footer-col-title">Navigation</h4>
+                <ul class="footer-links">
+                    <li><a href="/" class="footer-link">Home / Feed</a></li>
+                    <li><a href="/categories" class="footer-link">Explore Topics</a></li>
+                    <li><a href="/create-article" class="footer-link">Write a Story</a></li>
+                    <li><a href="/dashboard" class="footer-link">Author Dashboard</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="footer-col-title">Popular Categories</h4>
+                <ul class="footer-links" id="footer-categories-list">
+                    <li><a href="/categories" class="footer-link">Technology</a></li>
+                    <li><a href="/categories" class="footer-link">Engineering</a></li>
+                    <li><a href="/categories" class="footer-link">Design & UX</a></li>
+                    <li><a href="/categories" class="footer-link">Business</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="footer-col-title">Stay Inspired</h4>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
+                    Get top curated stories delivered straight to your reading inbox.
+                </p>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="email" placeholder="Enter your email" class="form-input" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;" id="newsletterEmail">
+                    <button class="btn btn-primary btn-sm" onclick="subscribeNewsletter()">Join</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div>
+                &copy; <span id="currentYear">2026</span> InkFlow Blog App. Built with Spring Boot, Thymeleaf & Vanilla JS.
+            </div>
+            <div style="display: flex; gap: 1.5rem;">
+                <a href="#" class="footer-link">Privacy Policy</a>
+                <a href="#" class="footer-link">Terms of Service</a>
+                <a href="#" class="footer-link">Support</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function subscribeNewsletter() {
+            const input = document.getElementById('newsletterEmail');
+            if (input && input.value.trim()) {
+                UI.showToast('Thank you for subscribing to InkFlow!', 'success');
+                input.value = '';
+            } else {
+                UI.showToast('Please enter a valid email address.', 'warning');
+            }
+        }
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+</footer>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <th:block th:replace="~{fragments/head :: head('Edit Story')}"></th:block>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main>
+    <div class="container container-sm" style="margin-top: 2rem;">
+        <div style="margin-bottom: 2rem;">
+            <a href="/dashboard" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 1rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Back to Dashboard
+            </a>
+            <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;">Edit Story</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Update your published content, description, pricing, or media.</p>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="editLoading" style="text-align: center; padding: 4rem 0;">
+            <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-weight: 500;">Loading story details...</p>
+        </div>
+
+        <form id="editArticleForm" class="form-card" style="display: none;" onsubmit="handleUpdateArticle(event)">
+            <!-- Title -->
+            <div class="form-group">
+                <label class="form-label" for="editTitle">Story Title <span style="color: var(--danger);">*</span></label>
+                <input type="text" id="editTitle" class="form-input" required style="font-size: 1.15rem; font-weight: 600;">
+            </div>
+
+            <!-- Category & Status Row -->
+            <div class="form-row form-group">
+                <div>
+                    <label class="form-label" for="editCategory">Category</label>
+                    <select id="editCategory" class="form-select">
+                        <option value="">Select a category</option>
+                        <!-- Loaded dynamically -->
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="editStatus">Publication Status</label>
+                    <select id="editStatus" class="form-select">
+                        <option value="PUBLISHED">Published (Live to all)</option>
+                        <option value="DRAFT">Draft (Saved private)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Short Description -->
+            <div class="form-group">
+                <label class="form-label" for="editShortDesc">Short Summary / Subtitle</label>
+                <input type="text" id="editShortDesc" class="form-input">
+            </div>
+
+            <!-- Pricing Row -->
+            <div class="form-row form-group" style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <div>
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="editPaid" onchange="toggleEditPaidSection()" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span>Mark as Premium Content</span>
+                    </label>
+                </div>
+                <div id="editPriceInputWrapper" style="display: none;">
+                    <label class="form-label" for="editPrice">Price ($ USD)</label>
+                    <input type="number" id="editPrice" class="form-input" min="0.00" step="0.50">
+                </div>
+            </div>
+
+            <!-- Rating Slider -->
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label class="form-label" for="editRating" style="margin-bottom: 0;">Rating</label>
+                    <span id="editRatingDisplay" style="font-weight: 700; color: var(--warning);">★ 5.0</span>
+                </div>
+                <input type="range" id="editRating" min="1" max="5" step="0.1" value="5.0" style="width: 100%; accent-color: var(--warning);" oninput="document.getElementById('editRatingDisplay').textContent = '★ ' + parseFloat(this.value).toFixed(1)">
+            </div>
+
+            <!-- Content Area -->
+            <div class="form-group">
+                <label class="form-label" for="editContent">Story Content <span style="color: var(--danger);">*</span></label>
+                <textarea id="editContent" class="form-textarea" style="min-height: 280px; font-family: var(--font-mono);" required></textarea>
+            </div>
+
+            <!-- Current Images Display -->
+            <div class="form-group" id="existingImagesBox" style="display: none;">
+                <label class="form-label">Current Media</label>
+                <div class="image-preview-grid" id="existingImagesGrid"></div>
+            </div>
+
+            <!-- Additional Image Upload -->
+            <div class="form-group">
+                <label class="form-label">Upload Additional Images</label>
+                <input type="file" id="editFileInput" multiple accept="image/*" class="form-input" style="padding: 0.5rem;" onchange="handleEditFileSelect(event)">
+                <div class="image-preview-grid" id="editPreviewGrid"></div>
+            </div>
+
+            <!-- Buttons -->
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <a id="cancelEditLink" href="/dashboard" class="btn btn-secondary">Cancel</a>
+                <button type="submit" id="saveEditBtn" class="btn btn-primary btn-lg">
+                    Save Changes &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<!-- Footer Fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts Fragment -->
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script th:inline="javascript">
+// ==========================================================================
+// Edit Article Controller (Plain Vanilla JavaScript)
+// ==========================================================================
+/*<![CDATA[*/
+const articleIdFromThymeleaf = /*[[${articleId}]]*/ null;
+/*]]>*/
+
+let articleId = null;
+let currentArticleData = null;
+let additionalFiles = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!Auth.requireAuth('/dashboard')) return;
+
+    articleId = articleIdFromThymeleaf;
+    if (!articleId) {
+        const parts = window.location.pathname.split('/');
+        articleId = parts[parts.length - 1];
+    }
+
+    await loadCategories();
+    await loadArticleToEdit();
+});
+
+async function loadCategories() {
+    try {
+        const categories = await API.get('/api/v1/category/');
+        const select = document.getElementById('editCategory');
+        if (categories && Array.isArray(categories)) {
+            categories.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                select.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.warn('Categories load error:', e);
+    }
+}
+
+async function loadArticleToEdit() {
+    const loading = document.getElementById('editLoading');
+    const form = document.getElementById('editArticleForm');
+
+    try {
+        currentArticleData = await API.get(`/api/v1/article/single/${articleId}`);
+        if (!currentArticleData) throw new Error('Article not found');
+
+        // Populate fields
+        document.getElementById('editTitle').value = currentArticleData.title || '';
+        document.getElementById('editShortDesc').value = currentArticleData.shortDesc || '';
+        document.getElementById('editContent').value = currentArticleData.content || '';
+        
+        if (currentArticleData.status) {
+            document.getElementById('editStatus').value = currentArticleData.status;
+        }
+
+        const isPaid = !!currentArticleData.paid;
+        document.getElementById('editPaid').checked = isPaid;
+        toggleEditPaidSection();
+        document.getElementById('editPrice').value = currentArticleData.price || 0.0;
+
+        const rating = currentArticleData.rating || 5.0;
+        document.getElementById('editRating').value = rating;
+        document.getElementById('editRatingDisplay').textContent = '★ ' + rating.toFixed(1);
+
+        if (currentArticleData.category && currentArticleData.category.id) {
+            document.getElementById('editCategory').value = currentArticleData.category.id;
+        }
+
+        document.getElementById('cancelEditLink').href = `/article/${articleId}`;
+
+        // Render existing images
+        if (currentArticleData.articleImage && currentArticleData.articleImage.length > 0) {
+            const existingBox = document.getElementById('existingImagesBox');
+            const existingGrid = document.getElementById('existingImagesGrid');
+            existingBox.style.display = 'block';
+            existingGrid.innerHTML = currentArticleData.articleImage.map(img => `
+                <div class="preview-thumb-card">
+                    <img src="${img.url}" alt="Media">
+                </div>
+            `).join('');
+        }
+
+        loading.style.display = 'none';
+        form.style.display = 'block';
+    } catch (err) {
+        loading.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <h3 class="empty-state-title">Error Loading Story</h3>
+                <p class="empty-state-text">${err.message}</p>
+                <a href="/dashboard" class="btn btn-primary btn-sm">Return to Dashboard</a>
+            </div>
+        `;
+    }
+}
+
+function toggleEditPaidSection() {
+    const isPaid = document.getElementById('editPaid').checked;
+    document.getElementById('editPriceInputWrapper').style.display = isPaid ? 'block' : 'none';
+}
+
+function handleEditFileSelect(e) {
+    if (e.target.files && e.target.files.length > 0) {
+        additionalFiles = Array.from(e.target.files);
+        const grid = document.getElementById('editPreviewGrid');
+        grid.innerHTML = additionalFiles.map(f => `
+            <div class="preview-thumb-card">
+                <img src="${URL.createObjectURL(f)}" alt="New preview">
+            </div>
+        `).join('');
+    }
+}
+
+async function handleUpdateArticle(e) {
+    e.preventDefault();
+    const btn = document.getElementById('saveEditBtn');
+    btn.disabled = true;
+    btn.innerHTML = 'Saving Changes...';
+
+    try {
+        const title = document.getElementById('editTitle').value.trim();
+        const shortDesc = document.getElementById('editShortDesc').value.trim();
+        const content = document.getElementById('editContent').value.trim();
+        const status = document.getElementById('editStatus').value;
+        const paid = document.getElementById('editPaid').checked;
+        const price = paid ? parseFloat(document.getElementById('editPrice').value || 0) : 0.0;
+        const rating = parseFloat(document.getElementById('editRating').value || 5.0);
+
+        const payload = {
+            title,
+            shortDesc,
+            content,
+            status,
+            paid,
+            price,
+            rating,
+            userId: currentArticleData.userId
+        };
+
+        // 1. Update article details via PUT
+        await API.put(`/api/v1/article/${articleId}`, payload);
+
+        // 2. Upload any additional images
+        if (additionalFiles.length > 0) {
+            btn.innerHTML = 'Uploading Media...';
+            const fd = new FormData();
+            additionalFiles.forEach(f => fd.append('articleImages', f));
+            try {
+                await API.upload(`/api/v1/article/images/${articleId}`, fd);
+            } catch (imgErr) {
+                console.warn('Image upload issue:', imgErr);
+            }
+        }
+
+        UI.showToast('Story updated successfully!', 'success');
+        setTimeout(() => {
+            window.location.href = `/article/${articleId}`;
+        }, 1000);
+
+    } catch (err) {
+        console.error('Update error:', err);
+        UI.showToast('Failed to update story: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Save Changes &rarr;';
+    }
+}
+</script>
+
+</body>
+</html>

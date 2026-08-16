@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="navbar" class="site-header">
+    <div class="container nav-wrapper">
+        <!-- Logo -->
+        <a href="/" class="brand-logo">
+            <div class="brand-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                    <path d="M2 2l7.586 7.586"></path>
+                    <circle cx="11" cy="11" r="2"></circle>
+                </svg>
+            </div>
+            <div class="brand-text">Ink<span>Flow</span></div>
+        </a>
+
+        <!-- Main Nav Links -->
+        <ul class="nav-links">
+            <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+            <li><a href="/categories" class="nav-link" id="nav-categories">Categories</a></li>
+            <li><a href="/dashboard" class="nav-link" id="nav-dashboard-link" style="display: none;">My Stories</a></li>
+            <li><a href="/admin" class="nav-link" id="nav-admin-link" style="display: none;">Admin Panel</a></li>
+        </ul>
+
+        <!-- Right Side Nav Actions -->
+        <div class="nav-actions">
+            <button id="themeToggleBtn" class="theme-toggle-btn" onclick="UI.toggleTheme()" aria-label="Toggle Theme">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+
+            <!-- Write Article CTA (for logged in) -->
+            <a href="/create-article" class="btn btn-primary btn-sm" id="nav-write-btn" style="display: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Write
+            </a>
+
+            <!-- Auth Container (populated dynamically by Vanilla JS Auth) -->
+            <div id="nav-auth-container" style="display: flex; align-items: center; gap: 0.5rem;">
+                <a href="/login" class="btn btn-outline btn-sm">Sign In</a>
+                <a href="/register" class="btn btn-primary btn-sm">Get Started</a>
+            </div>
+
+            <!-- Mobile Toggle -->
+            <button class="mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+        </div>
+    </div>
+</header>
+</body>
+</html>

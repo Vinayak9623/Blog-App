@@ -63,24 +63,25 @@ public class ArticleServiceImplDb implements ArticleService {
         return modelMapper.map(updateArticle,ArticleDto.class);
     }
 
+    private void populateImageUrls(Article article) {
+        if (article != null && article.getArticleImage() != null) {
+            article.getArticleImage().forEach(image -> {
+                try {
+                    if (image.getObjectKey() != null) {
+                        String url = fileUploadService.getPreSignUrl(image.getObjectKey());
+                        image.setUrl(url);
+                    }
+                } catch (Exception e) {
+                    // Graceful fallback if MinIO is not reachable
+                }
+            });
+        }
+    }
+
     @Override
     public List<ArticleDto> getArticles() {
-
         List<Article> articles = articleRepository.findAll();
-
-        for (Article article : articles) {
-            if (article.getArticleImage() != null) {
-                article.getArticleImage().forEach(image -> {
-                    try {
-                        String url = fileUploadService.getPreSignUrl(image.getObjectKey());
-                        image.setUrl(url); // ✅ IMPORTANT
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-            }
-        }
-
+        articles.forEach(this::populateImageUrls);
         return articles.stream()
                 .map(x -> modelMapper.map(x, ArticleDto.class))
                 .toList();
@@ -90,8 +91,8 @@ public class ArticleServiceImplDb implements ArticleService {
     public Page<ArticleDto> getPeginatedArticle(int page, int size) {
         PageRequest request = PageRequest.of(page, size);
         Page<Article> all = articleRepository.findAll(request);
+        all.forEach(this::populateImageUrls);
         Page<ArticleDto> map = all.map(x -> modelMapper.map(x, ArticleDto.class));
-
         return map;
     }
 
@@ -99,6 +100,7 @@ public class ArticleServiceImplDb implements ArticleService {
     public ArticleDto getSingleArticle(long articleId) {
         var article=articleRepository.findById(articleId)
                 .orElseThrow(()->new ResourceNotFoundException("Article not found"));
+        populateImageUrls(article);
         return modelMapper.map(article,ArticleDto.class);
     }
 
@@ -107,29 +109,27 @@ public class ArticleServiceImplDb implements ArticleService {
         var article=articleRepository.findById(articleId)
                 .orElseThrow(()->new RuntimeException("Article not found"));
         articleRepository.delete(article);
-        return "Deleted Successfully with"+articleId;
+        return "Deleted Successfully with "+articleId;
     }
 
     @Override
     public List<ArticleDto> getArticleOfUser(Long userId) {
-     var user=userRepository.findById(userId)
-             .orElseThrow(()->new
-                     ResourceNotFoundException("user not found"));
-     return articleRepository
-             .findByUser(user)
-             .stream()
-             .map(x->modelMapper.map(x, ArticleDto.class)).toList();
-
+        var user=userRepository.findById(userId)
+                .orElseThrow(()->new ResourceNotFoundException("user not found"));
+        List<Article> articles = articleRepository.findByUser(user);
+        articles.forEach(this::populateImageUrls);
+        return articles.stream()
+                .map(x->modelMapper.map(x, ArticleDto.class)).toList();
     }
 
     @Override
     public List<ArticleDto> getArticleOfCategory(Long categoryId) {
         var category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-
-        return articleRepository.findByCategory(category).stream().map(x->modelMapper
-                .map(x, ArticleDto.class)).toList();
-
+        List<Article> articles = articleRepository.findByCategory(category);
+        articles.forEach(this::populateImageUrls);
+        return articles.stream()
+                .map(x->modelMapper.map(x, ArticleDto.class)).toList();
     }
 
     @Override

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <th:block th:replace="~{fragments/head :: head('Join InkFlow - Create an Account')}"></th:block>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - var(--header-height) - 150px); padding: 2rem 1rem;">
+    <div class="container container-sm" style="max-width: 480px;">
+        <div class="form-card" style="padding: 2.25rem;">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div class="brand-icon" style="margin: 0 auto 1rem; width: 44px; height: 44px; font-size: 1.3rem;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                    </svg>
+                </div>
+                <h1 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">Join InkFlow</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Create an account to write, publish, and interact with stories.</p>
+            </div>
+
+            <!-- Registration Form -->
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label class="form-label" for="regName">Full Name</label>
+                    <input type="text" id="regName" class="form-input" placeholder="e.g. Alex Mercer" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="regEmail">Email Address</label>
+                    <input type="email" id="regEmail" class="form-input" placeholder="alex@example.com" required autocomplete="email">
+                </div>
+
+                <div class="form-row form-group">
+                    <div>
+                        <label class="form-label" for="regPassword">Password</label>
+                        <input type="password" id="regPassword" class="form-input" placeholder="••••••••" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <div>
+                        <label class="form-label" for="regConfirmPassword">Confirm</label>
+                        <input type="password" id="regConfirmPassword" class="form-input" placeholder="••••••••" required minlength="6" autocomplete="new-password">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="regRole">Account Role</label>
+                    <select id="regRole" class="form-select">
+                        <option value="ROLE_GUEST">Author / Creator (Default)</option>
+                        <option value="ROLE_ADMIN">Administrator (Full Access)</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="regSubmitBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
+                    Create Account &rarr;
+                </button>
+            </form>
+
+            <!-- Footer links -->
+            <div style="text-align: center; margin-top: 1.75rem; font-size: 0.875rem; color: var(--text-muted);">
+                Already have an account?
+                <a href="/login" style="color: var(--primary); font-weight: 600;">Sign in instead</a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer Fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts Fragment -->
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<script>
+// ==========================================================================
+// Register Controller (Plain Vanilla JavaScript)
+// ==========================================================================
+async function handleRegister(e) {
+    e.preventDefault();
+    const btn = document.getElementById('regSubmitBtn');
+    const originalText = btn.innerHTML;
+
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    const role = document.getElementById('regRole').value;
+
+    if (password !== confirmPassword) {
+        UI.showToast('Passwords do not match.', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = 'Creating Account...';
+
+    try {
+        const payload = {
+            name,
+            email,
+            password,
+            role,
+            isActive: true
+        };
+
+        // Register user
+        const createdUser = await API.post('/api/v1/auth/user', payload);
+        
+        UI.showToast('Account registered successfully! Signing you in...', 'success');
+
+        // Automatically log user in
+        try {
+            const loginResp = await API.post('/api/v1/auth/login', { email, password });
+            if (loginResp && loginResp.accessToken) {
+                Auth.saveAuth(loginResp);
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+                return;
+            }
+        } catch (loginErr) {
+            console.warn('Auto-login failed, redirecting to login page:', loginErr);
+        }
+
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1200);
+
+    } catch (err) {
+        console.error('Registration error:', err);
+        UI.showToast('Registration failed: ' + (err.message || 'Please check your information.'), 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+</script>
+
+</body>
+</html>

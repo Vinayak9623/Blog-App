@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <th:block th:replace="~{fragments/head :: head('Admin Control Panel')}"></th:block>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main>
+    <div class="container" style="margin-top: 3rem;">
+        <!-- Header -->
+        <div style="margin-bottom: 2.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span class="badge badge-paid">Super Admin</span>
+            </div>
+            <h1 style="font-size: 2.25rem; font-weight: 800; letter-spacing: -0.02em;">Admin Control Center</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Manage users, platform categories, and moderate stories across the network.</p>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon indigo">👥</div>
+                <div>
+                    <div class="stat-value" id="adminUsersCount">0</div>
+                    <div class="stat-label">Registered Users</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon emerald">📚</div>
+                <div>
+                    <div class="stat-value" id="adminArticlesCount">0</div>
+                    <div class="stat-label">Total Articles</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon amber">🏷️</div>
+                <div>
+                    <div class="stat-value" id="adminCategoriesCount">0</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchAdminTab('users', this)">User Management</button>
+            <button class="tab-btn" onclick="switchAdminTab('categories', this)">Category Management</button>
+            <button class="tab-btn" onclick="switchAdminTab('articles', this)">Content Moderation</button>
+        </div>
+
+        <!-- Loading -->
+        <div id="adminLoading" style="text-align: center; padding: 4rem 0;">
+            <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-weight: 500;">Loading admin data...</p>
+        </div>
+
+        <!-- 1. USERS TAB -->
+        <div id="tabUsers" class="admin-tab-content">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Email Address</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. CATEGORIES TAB -->
+        <div id="tabCategories" class="admin-tab-content" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: var(--radius-md);">
+                <div style="display: flex; gap: 0.75rem; flex: 1; max-width: 500px;">
+                    <input type="text" id="adminNewCatInput" class="form-input" placeholder="New category name (e.g. Cybersecurity)...">
+                    <button class="btn btn-primary btn-sm" onclick="adminCreateCategory()">Create</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Category ID</th>
+                            <th>Category Name</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. ARTICLES MODERATION TAB -->
+        <div id="tabArticles" class="admin-tab-content" style="display: none;">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title & Excerpt</th>
+                            <th>Author ID</th>
+                            <th>Status</th>
+                            <th>Access</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="articlesTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer Fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts Fragment -->
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+// ==========================================================================
+// Admin Panel Controller (Plain Vanilla JavaScript)
+// ==========================================================================
+let adminUsers = [];
+let adminCats = [];
+let adminStories = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!Auth.requireAdmin()) return;
+    await loadAllAdminData();
+});
+
+async function loadAllAdminData() {
+    const loading = document.getElementById('adminLoading');
+    try {
+        const [users, cats, stories] = await Promise.all([
+            API.get('/api/v1/auth/users').catch(() => []),
+            API.get('/api/v1/category/').catch(() => []),
+            API.get('/api/v1/article/get').catch(() => [])
+        ]);
+
+        adminUsers = Array.isArray(users) ? users : [];
+        adminCats = Array.isArray(cats) ? cats : [];
+        adminStories = Array.isArray(stories) ? stories : [];
+
+        document.getElementById('adminUsersCount').textContent = adminUsers.length;
+        document.getElementById('adminCategoriesCount').textContent = adminCats.length;
+        document.getElementById('adminArticlesCount').textContent = adminStories.length;
+
+        renderUsersTable();
+        renderCategoriesTable();
+        renderArticlesTable();
+    } catch (err) {
+        console.error('Error loading admin panel:', err);
+        UI.showToast('Failed to load admin metrics: ' + err.message, 'error');
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+
+function switchAdminTab(tab, element) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (element) element.classList.add('active');
+
+    document.getElementById('tabUsers').style.display = tab === 'users' ? 'block' : 'none';
+    document.getElementById('tabCategories').style.display = tab === 'categories' ? 'block' : 'none';
+    document.getElementById('tabArticles').style.display = tab === 'articles' ? 'block' : 'none';
+}
+
+function renderUsersTable() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!adminUsers.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem;">No users found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = adminUsers.map(u => {
+        const isAdmin = u.role === 'ROLE_ADMIN' || u.role === 'ADMIN';
+        return `
+            <tr>
+                <td><strong>#${u.id}</strong></td>
+                <td>
+                    <div style="font-weight: 600;">${UI.escapeHtml(u.name || 'User')}</div>
+                </td>
+                <td>${UI.escapeHtml(u.email || '-')}</td>
+                <td>
+                    <span class="badge ${isAdmin ? 'badge-primary' : 'badge-outline'}">
+                        ${isAdmin ? 'ADMINISTRATOR' : 'AUTHOR / GUEST'}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge badge-success">Active</span>
+                </td>
+                <td style="text-align: right;">
+                    ${!isAdmin ? `
+                        <button onclick="handlePromoteAdmin(${u.id}, '${UI.escapeHtml(u.name)}')" class="btn btn-outline btn-sm">
+                            Make Admin
+                        </button>
+                    ` : '<span style="font-size:0.8rem; color:var(--text-muted);">Current Admin</span>'}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderCategoriesTable() {
+    const tbody = document.getElementById('categoriesTableBody');
+    if (!adminCats.length) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 2rem;">No categories found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = adminCats.map(c => `
+        <tr>
+            <td><strong>#${c.id}</strong></td>
+            <td><strong style="color:var(--primary);">${UI.escapeHtml(c.name)}</strong></td>
+            <td style="text-align: right;">
+                <button onclick="handleDeleteCat(${c.id}, '${UI.escapeHtml(c.name)}')" class="btn btn-danger-outline btn-sm">
+                    Delete
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderArticlesTable() {
+    const tbody = document.getElementById('articlesTableBody');
+    if (!adminStories.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem;">No stories found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = adminStories.map(a => `
+        <tr>
+            <td><strong>#${a.id}</strong></td>
+            <td>
+                <a href="/article/${a.id}" target="_blank" style="font-weight: 600; color: var(--text-main);">
+                    ${UI.escapeHtml(a.title || 'Untitled')}
+                </a>
+                <div style="font-size: 0.785rem; color: var(--text-muted);">${UI.escapeHtml(a.shortDesc || '')}</div>
+            </td>
+            <td>User #${a.userId || '1'}</td>
+            <td><span class="badge ${a.status === 'PUBLISHED' ? 'badge-success' : 'badge-warning'}">${a.status || 'PUBLISHED'}</span></td>
+            <td>${a.paid ? `<span class="badge badge-paid">$${a.price ? a.price.toFixed(2) : '0.00'}</span>` : `<span class="badge badge-free">FREE</span>`}</td>
+            <td style="text-align: right;">
+                <div style="display: inline-flex; gap: 0.35rem;">
+                    <a href="/edit-article/${a.id}" class="btn btn-secondary btn-sm">Edit</a>
+                    <button onclick="handleAdminDeleteArticle(${a.id}, '${UI.escapeHtml(a.title)}')" class="btn btn-danger-outline btn-sm">Delete</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function handlePromoteAdmin(userId, name) {
+    UI.confirm('Promote to Admin', `Are you sure you want to promote "${name}" (ID #${userId}) to Administrator?`, async () => {
+        try {
+            await API.post(`/api/v1/auth/admin/${userId}`, {});
+            UI.showToast(`User "${name}" promoted to Admin!`, 'success');
+            await loadAllAdminData();
+        } catch (err) {
+            UI.showToast('Failed to promote user: ' + err.message, 'error');
+        }
+    });
+}
+
+async function adminCreateCategory() {
+    const input = document.getElementById('adminNewCatInput');
+    const name = input.value.trim();
+    if (!name) {
+        UI.showToast('Please enter category name', 'warning');
+        return;
+    }
+    try {
+        const cat = await API.post('/api/v1/category/', { name });
+        UI.showToast(`Category "${cat.name}" created!`, 'success');
+        input.value = '';
+        await loadAllAdminData();
+    } catch (err) {
+        UI.showToast('Error creating category: ' + err.message, 'error');
+    }
+}
+
+function handleDeleteCat(id, name) {
+    UI.confirm('Delete Category', `Are you sure you want to delete category "${name}"?`, async () => {
+        try {
+            await API.delete(`/api/v1/category/${id}`);
+            UI.showToast('Category deleted.', 'success');
+            await loadAllAdminData();
+        } catch (err) {
+            UI.showToast('Error deleting category: ' + err.message, 'error');
+        }
+    });
+}
+
+function handleAdminDeleteArticle(id, title) {
+    UI.confirm('Moderate & Delete Story', `Are you sure you want to permanently delete story #${id} "${title}"?`, async () => {
+        try {
+            await API.delete(`/api/v1/article/${id}`);
+            UI.showToast('Story removed.', 'success');
+            await loadAllAdminData();
+        } catch (err) {
+            UI.showToast('Error deleting story: ' + err.message, 'error');
+        }
+    });
+}
+</script>
+
+</body>
+</html>

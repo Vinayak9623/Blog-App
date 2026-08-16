@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <th:block th:replace="~{fragments/head :: head('Article Details')}"></th:block>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main>
+    <div class="container container-sm" style="margin-top: 2rem;">
+        <!-- Back Link & Breadcrumbs -->
+        <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+            <a href="/" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Back to Feed
+            </a>
+            <div id="ownerActionButtons" style="display: none; gap: 0.5rem;">
+                <a id="editArticleBtn" href="#" class="btn btn-secondary btn-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    Edit
+                </a>
+                <button onclick="handleDeleteArticle()" class="btn btn-danger-outline btn-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="articleLoading" style="text-align: center; padding: 5rem 0;">
+            <div style="display: inline-block; width: 44px; height: 44px; border: 3px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-weight: 500;">Loading article...</p>
+        </div>
+
+        <!-- Article Container -->
+        <article id="articleContainer" style="display: none;">
+            <header class="article-detail-header">
+                <div class="article-header-meta">
+                    <span id="articleCategoryBadge" class="badge badge-primary">Category</span>
+                    <span id="articleStatusBadge" class="badge badge-outline">Published</span>
+                    <span id="articlePaidBadge" class="badge badge-paid" style="display: none;">Premium</span>
+                </div>
+
+                <h1 id="articleTitle" class="article-main-title">Article Title</h1>
+                <p id="articleShortDesc" class="article-sub-desc">Short description of the story</p>
+
+                <!-- Author & Stats Bar -->
+                <div class="article-author-bar">
+                    <div class="article-author-info">
+                        <div class="author-avatar-large" id="authorAvatar">✍</div>
+                        <div>
+                            <div class="author-name-title" id="authorName">Author</div>
+                            <div class="article-date-read">
+                                <span id="articleReadTime">3 min read</span> •
+                                <span id="articleRating" style="color: var(--warning); font-weight: 700;">★ 5.0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Share & Bookmark Actions -->
+                    <div class="article-actions">
+                        <button class="btn btn-outline btn-icon-only" onclick="copyArticleLink()" title="Copy Link">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                        </button>
+                        <button class="btn btn-outline btn-icon-only" onclick="toggleBookmark(this)" title="Bookmark Story">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Cover Media -->
+            <div id="articleCoverMedia" class="article-cover-wrapper"></div>
+
+            <!-- Multi Image Gallery (if any) -->
+            <div id="articleGallery" class="article-image-gallery" style="display: none;"></div>
+
+            <!-- Body Content -->
+            <div id="articleBody" class="article-content"></div>
+
+            <!-- Premium Lock Box (if article is paid) -->
+            <div id="premiumBanner" class="premium-locked-box" style="display: none;">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">👑</div>
+                <h3 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.5rem;">Premium Content</h3>
+                <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto 1.25rem;">
+                    This article is part of our creator exclusive collection priced at <strong id="premiumPriceTag" style="color: var(--primary);">$0.00</strong>.
+                </p>
+                <button class="btn btn-primary" onclick="UI.showToast('Payment system demo: Access Granted!', 'success')">Support Author & Unlock Story</button>
+            </div>
+
+            <!-- Author Bio Section -->
+            <div style="margin-top: 4rem; padding: 2rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); display: flex; gap: 1.5rem; align-items: center;">
+                <div class="author-avatar-large" style="width: 64px; height: 64px; font-size: 1.5rem;">✍</div>
+                <div>
+                    <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem;" id="bioAuthorName">Written by InkFlow Author</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+                        Passionate writer, contributor, and knowledge sharer on the InkFlow publication network.
+                    </p>
+                </div>
+            </div>
+        </article>
+    </div>
+</main>
+
+<!-- Footer Fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts Fragment -->
+<th:block th:replace="~{fragments/scripts :: scripts}"></th:block>
+
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script th:inline="javascript">
+// ==========================================================================
+// Article Detail Controller (Plain Vanilla JavaScript)
+// ==========================================================================
+/*<![CDATA[*/
+const articleIdFromThymeleaf = /*[[${articleId}]]*/ null;
+/*]]>*/
+
+let currentArticle = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Extract ID from path or Thymeleaf model
+    let articleId = articleIdFromThymeleaf;
+    if (!articleId) {
+        const pathParts = window.location.pathname.split('/');
+        articleId = pathParts[pathParts.length - 1];
+    }
+
+    if (!articleId) {
+        UI.showToast('Invalid article ID', 'error');
+        window.location.href = '/';
+        return;
+    }
+
+    await loadArticleDetail(articleId);
+});
+
+async function loadArticleDetail(id) {
+    const loading = document.getElementById('articleLoading');
+    const container = document.getElementById('articleContainer');
+
+    try {
+        currentArticle = await API.get(`/api/v1/article/single/${id}`);
+
+        if (!currentArticle) {
+            throw new Error('Article not found');
+        }
+
+        renderArticle(currentArticle);
+        checkOwnerPermissions(currentArticle);
+    } catch (err) {
+        console.error('Failed to load article:', err);
+        loading.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <h3 class="empty-state-title">Article Not Found</h3>
+                <p class="empty-state-text">The story you are looking for does not exist or has been removed.</p>
+                <a href="/" class="btn btn-primary btn-sm">Return to Home</a>
+            </div>
+        `;
+    } finally {
+        loading.style.display = 'none';
+        container.style.display = 'block';
+    }
+}
+
+function renderArticle(art) {
+    document.title = `${art.title || 'Story'} - InkFlow`;
+    document.getElementById('articleTitle').textContent = art.title || 'Untitled Story';
+    document.getElementById('articleShortDesc').textContent = art.shortDesc || '';
+    
+    // Category
+    const categoryName = (art.category && art.category.name) || 'Technology';
+    document.getElementById('articleCategoryBadge').textContent = categoryName;
+
+    // Status
+    const statusBadge = document.getElementById('articleStatusBadge');
+    if (art.status) {
+        statusBadge.textContent = art.status;
+        statusBadge.className = `badge ${art.status === 'PUBLISHED' ? 'badge-success' : 'badge-warning'}`;
+    } else {
+        statusBadge.style.display = 'none';
+    }
+
+    // Paid Badge
+    const paidBadge = document.getElementById('articlePaidBadge');
+    const premiumBanner = document.getElementById('premiumBanner');
+    if (art.paid) {
+        paidBadge.style.display = 'inline-flex';
+        paidBadge.textContent = `★ Premium $${art.price ? art.price.toFixed(2) : '0.00'}`;
+        premiumBanner.style.display = 'block';
+        document.getElementById('premiumPriceTag').textContent = `$${art.price ? art.price.toFixed(2) : '0.00'}`;
+    }
+
+    // Author
+    const authorNameStr = `Author #${art.userId || '1'}`;
+    document.getElementById('authorName').textContent = authorNameStr;
+    document.getElementById('bioAuthorName').textContent = `Written by ${authorNameStr}`;
+    document.getElementById('authorAvatar').textContent = '✍';
+
+    // Reading time & Rating
+    document.getElementById('articleReadTime').textContent = UI.calculateReadTime(art.content);
+    document.getElementById('articleRating').innerHTML = UI.renderRatingStars(art.rating);
+
+    // Cover Media & Gallery
+    const coverContainer = document.getElementById('articleCoverMedia');
+    const galleryContainer = document.getElementById('articleGallery');
+
+    if (art.articleImage && art.articleImage.length > 0) {
+        const primaryImg = art.articleImage[0];
+        if (primaryImg.url) {
+            coverContainer.innerHTML = `<img src="${primaryImg.url}" alt="${UI.escapeHtml(art.title)}">`;
+        } else {
+            coverContainer.innerHTML = UI.getDefaultCover(categoryName, art.title);
+        }
+
+        // Additional images in gallery
+        if (art.articleImage.length > 1) {
+            galleryContainer.style.display = 'grid';
+            galleryContainer.innerHTML = art.articleImage.slice(1).map(img => `
+                <div class="gallery-item">
+                    <img src="${img.url}" alt="Story media" onclick="window.open('${img.url}', '_blank')">
+                </div>
+            `).join('');
+        }
+    } else {
+        coverContainer.innerHTML = UI.getDefaultCover(categoryName, art.title);
+    }
+
+    // Body Content Formatter (handles simple markdown headings, lists, bold, code)
+    document.getElementById('articleBody').innerHTML = formatStoryContent(art.content);
+}
+
+function formatStoryContent(raw) {
+    if (!raw) return '<p>No content provided.</p>';
+    
+    // Convert line breaks and simple markdown
+    let formatted = UI.escapeHtml(raw);
+
+    // Paragraphs
+    let paragraphs = formatted.split(/\n\n+/);
+    return paragraphs.map(p => {
+        let trimmed = p.trim();
+        if (trimmed.startsWith('# ')) {
+            return `<h2>${trimmed.substring(2)}</h2>`;
+        } else if (trimmed.startsWith('## ')) {
+            return `<h3>${trimmed.substring(3)}</h3>`;
+        } else if (trimmed.startsWith('&gt; ')) {
+            return `<blockquote>${trimmed.substring(5)}</blockquote>`;
+        } else if (trimmed.startsWith('```') && trimmed.endsWith('```')) {
+            return `<pre><code>${trimmed.slice(3, -3)}</code></pre>`;
+        }
+        return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+}
+
+function checkOwnerPermissions(art) {
+    const user = Auth.getUser();
+    const isOwner = user && (user.id == art.userId);
+    const isAdmin = Auth.isAdmin();
+
+    if (isOwner || isAdmin) {
+        const ownerBox = document.getElementById('ownerActionButtons');
+        const editBtn = document.getElementById('editArticleBtn');
+        ownerBox.style.display = 'flex';
+        editBtn.href = `/edit-article/${art.id}`;
+    }
+}
+
+function copyArticleLink() {
+    navigator.clipboard.writeText(window.location.href);
+    UI.showToast('Article link copied to clipboard!', 'success');
+}
+
+function toggleBookmark(btn) {
+    btn.classList.toggle('active');
+    if (btn.classList.contains('active')) {
+        btn.style.color = 'var(--primary)';
+        UI.showToast('Story saved to reading list', 'success');
+    } else {
+        btn.style.color = 'inherit';
+        UI.showToast('Story removed from bookmarks', 'info');
+    }
+}
+
+function handleDeleteArticle() {
+    if (!currentArticle) return;
+    UI.confirm('Delete Story', `Are you sure you want to delete "${currentArticle.title}"? This action cannot be undone.`, async () => {
+        try {
+            await API.delete(`/api/v1/article/${currentArticle.id}`);
+            UI.showToast('Story deleted successfully.', 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1000);
+        } catch (err) {
+            UI.showToast('Failed to delete story: ' + err.message, 'error');
+        }
+    });
+}
+</script>
+
+</body>
+</html>
