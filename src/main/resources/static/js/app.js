@@ -19,13 +19,45 @@ const Auth = {
     return localStorage.getItem(this.REFRESH_KEY);
   },
 
-  getUser() {
-    const data = localStorage.getItem(this.USER_KEY);
+  // Helper to decode JWT token payload without external libraries
+  decodeTokenPayload(token) {
+    if (!token) return null;
     try {
-      return data ? JSON.parse(data) : null;
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
     } catch (e) {
+      console.warn('Could not decode JWT payload:', e);
       return null;
     }
+  },
+
+  getUser() {
+    const data = localStorage.getItem(this.USER_KEY);
+    let user = null;
+    try {
+      user = data ? JSON.parse(data) : {};
+    } catch (e) {
+      user = {};
+    }
+
+    // Ensure role is extracted from JWT token payload if missing
+    const token = this.getToken();
+    if (token) {
+      const payload = this.decodeTokenPayload(token);
+      if (payload) {
+        if (!user.email && payload.sub) user.email = payload.sub;
+        if (payload.role) user.role = payload.role;
+      }
+    }
+
+    return user;
   },
 
   isLoggedIn() {
@@ -33,8 +65,22 @@ const Auth = {
   },
 
   isAdmin() {
+    const token = this.getToken();
+    if (!token) return false;
+
+    // 1. Check decoded JWT claims directly from accessToken
+    const payload = this.decodeTokenPayload(token);
+    if (payload && (payload.role === 'ROLE_ADMIN' || payload.role === 'ADMIN')) {
+      return true;
+    }
+
+    // 2. Check user object in localStorage
     const user = this.getUser();
-    return user && (user.role === 'ROLE_ADMIN' || user.role === 'ADMIN');
+    if (user && (user.role === 'ROLE_ADMIN' || user.role === 'ADMIN')) {
+      return true;
+    }
+
+    return false;
   },
 
   saveAuth(authResponse) {
@@ -44,9 +90,19 @@ const Auth = {
     if (authResponse.refreshToken) {
       localStorage.setItem(this.REFRESH_KEY, authResponse.refreshToken);
     }
-    if (authResponse.user) {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(authResponse.user));
+
+    let user = authResponse.user || {};
+    
+    // Automatically extract role and subject from the JWT accessToken
+    if (authResponse.accessToken) {
+      const payload = this.decodeTokenPayload(authResponse.accessToken);
+      if (payload) {
+        if (payload.role) user.role = payload.role;
+        if (payload.sub && !user.email) user.email = payload.sub;
+      }
     }
+
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   },
 
   logout() {
@@ -92,7 +148,7 @@ const Auth = {
 
     if (this.isLoggedIn()) {
       const user = this.getUser() || { name: 'User', email: '', role: 'ROLE_GUEST' };
-      const initials = (user.name || 'U').substring(0, 2).toUpperCase();
+      const initials = (user.name || user.email || 'U').substring(0, 2).toUpperCase();
       const isAdmin = this.isAdmin();
 
       if (writeStoryBtn) writeStoryBtn.style.display = 'inline-flex';
@@ -103,12 +159,12 @@ const Auth = {
         <div class="user-menu" id="userMenuWrapper">
           <button class="user-avatar-btn" id="userAvatarBtn" onclick="Auth.toggleUserDropdown()">
             <div class="avatar-circle">${initials}</div>
-            <span class="user-name-display">${UI.escapeHtml(user.name || 'Account')}</span>
+            <span class="user-name-display">${UI.escapeHtml(user.name || user.email || 'Account')}</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
           <div class="dropdown-menu" id="userDropdownMenu">
             <div class="dropdown-header">
-              <div class="dropdown-user-name">${UI.escapeHtml(user.name || '')}</div>
+              <div class="dropdown-user-name">${UI.escapeHtml(user.name || 'Author')}</div>
               <div class="dropdown-user-email">${UI.escapeHtml(user.email || '')}</div>
               <span class="dropdown-user-role">${isAdmin ? 'Administrator' : 'Author'}</span>
             </div>
@@ -190,7 +246,6 @@ const API = {
       const response = await fetch(`${this.BASE_URL}${endpoint}`, config);
 
       if (response.status === 401) {
-        // Token invalid or expired
         if (Auth.isLoggedIn()) {
           UI.showToast('Session expired. Please sign in again.', 'warning');
           Auth.logout();
@@ -214,7 +269,6 @@ const API = {
         throw new Error(errorMsg);
       }
 
-      // Check if response is empty
       const text = await response.text();
       return text ? JSON.parse(text) : null;
     } catch (err) {
@@ -359,7 +413,6 @@ const UI = {
     `;
   },
 
-  // Modal Dialog confirmation helper
   confirm(title, message, onConfirm) {
     let modal = document.getElementById('confirmModal');
     if (!modal) {
@@ -388,7 +441,6 @@ const UI = {
     document.getElementById('confirmModalMessage').textContent = message;
     const okBtn = document.getElementById('confirmModalOkBtn');
 
-    // Remove previous click handlers
     const newOkBtn = okBtn.cloneNode(true);
     okBtn.parentNode.replaceChild(newOkBtn, okBtn);
 
